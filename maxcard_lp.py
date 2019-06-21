@@ -1,4 +1,4 @@
-def generate_max_card_lp(g, path):
+def generate_max_card_lp(g, path, option):
     f = open(path, "w")
     f.write("maximize\nsize: ")
     for i, edge in enumerate(g.edges):
@@ -27,6 +27,18 @@ def generate_max_card_lp(g, path):
                 if(i != len(h.pref)-1):
                     f.write('+ ')
             f.write('<= ' + str(h.uq) + '\n')
+
+    if(option == 1):
+        for h in g.hospitals:
+            h_ind = h.name[1:]
+            if(len(h.pref) > 0 and len(h.matched) > 0):
+                f.write(h.name + '_lq: ')
+                for i, r in enumerate(h.pref):
+                    r_ind = r.name[1:]
+                    f.write('x_' + r_ind + '_' + h_ind + ' ')
+                    if(i != len(h.pref)-1):
+                        f.write('+ ')
+                f.write('>= ' + str(len(h.matched)) + '\n')
 
     f.write('\nbin\n')
     for i, edge in enumerate(g.edges):

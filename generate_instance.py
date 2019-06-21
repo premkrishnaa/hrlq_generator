@@ -119,7 +119,6 @@ def mahadian_model(n1, n2, k, cap):
         for hosp in pref_R[r]:
             res.pref.append(g.get_hospital(hosp))
 
-
     for h in H:
         pref_H[h] = order_by_master_list(pref_H[h], master_list)
         #random.shuffle(pref_H[h])
@@ -129,41 +128,44 @@ def mahadian_model(n1, n2, k, cap):
 
     return g
 
-def set_lower_quotas(g):
+def set_lower_quotas(g, option):
     m = get_stable_matching(g)
-    generate_max_card_lp(g, 'temp.txt')
+    generate_max_card_lp(g, 'temp.txt', option)
     model = cplex.Cplex('temp.txt')
     model.solve()
     var = model.variables.get_names()
+    hosp_matchsize_mcm = [0 for i in range(len(g.hospitals)+1)]
     for v in var:
         v_split = v.split('_')
         h_name = 'h' + v_split[2]
         if(model.solution.get_values(v) > 0.5):
-            h = g.get_hospital(h_name)
-            if(len(h.pref) > 0 and len(h.matched) == 0):
-                h.lq = 1
+            hosp_matchsize_mcm[int(v_split[2])] += 1
+
+    for h in g.hospitals:
+        if(len(h.pref) > 0 and len(h.matched) < hosp_matchsize_mcm[int(h.name[1:])]):
+            h.lq = len(h.matched) + 1
 
     os.system('rm temp.txt')
 
-def random_model_generator(n1, n2, k, cap):
+def random_model_generator(n1, n2, k, cap, option):
     g = random_model(n1, n2, k, cap)
-    set_lower_quotas(g)
+    set_lower_quotas(g, option)
     return g
 
-def mahadian_model_generator(n1, n2, k, cap):
+def mahadian_model_generator(n1, n2, k, cap, option):
     g = mahadian_model(n1, n2, k, cap)
-    set_lower_quotas(g)
+    set_lower_quotas(g, option)
     return g
 
 def main():
     import sys
-    if len(sys.argv) < 6:
-        print("usage: {} <n1> <n2> <k> <capacity> <output_path>".format(sys.argv[0]), file=sys.stderr)
+    if len(sys.argv) < 7:
+        print("usage: {} <n1> <n2> <k> <capacity> <output_path> <option>".format(sys.argv[0]), file=sys.stderr)
     else:
-        n1, n2, k, max_capacity = int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
+        n1, n2, k, max_capacity, option = int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[6])
         output_path = sys.argv[5]
-        G = mahadian_model_generator(n1, n2, k, max_capacity)
-        # G = random_model_generator(n1, n2, k, max_capacity)
+        G = mahadian_model_generator(n1, n2, k, max_capacity, option)
+        # G = random_model_generator(n1, n2, k, max_capacity, option)
         G.print_to_file(output_path)
 
 if __name__ == '__main__':
